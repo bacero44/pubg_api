@@ -6,11 +6,12 @@ require_relative('helpers')
 
 Dir[settings.root + '/classes/*.rb'].sort.each { |file| require file }
 
-$valid_parameters = YAML.load_file('api_parameters.ylm')
+VALID_PARAMETERS = YAML.load_file('api_parameters.ylm')
 
 also_reload settings.root + '/classes/player.rb'
 also_reload settings.root + '/classes/db.rb'
 also_reload settings.root + '/classes/pubg.rb'
+also_reload settings.root + '/classes/match.rb'
 
 before do
   content_type :json
@@ -22,11 +23,10 @@ get '/' do
 end
 
 get '/platforms' do
-  json_response($valid_parameters['platforms'], 200)
+  json_response(VALID_PARAMETERS['platforms'], 200)
 end
 
 get '/:platform/:playerName' do
-  
   if valid_platform?
     platform = params[:platform]
     player_name = params[:playerName]
@@ -41,9 +41,19 @@ get '/:platform/:playerName' do
   else
     json_response({ "message": 'Invalid Platform', "data": 'no data' }, 400)
   end
+end
 
+get '/:platform/match/:id' do
+  if valid_platform?
+    platform = params[:platform]
+    id = params[:id]
+    match = Match.new(platform, id)
+    json_response(match.data, 200)
+  else
+    json_response({ "message": 'Invalid Platform', "data": 'no data' }, 400)
+  end
 end
 
 def valid_platform?
-  $valid_parameters['platforms'].include?(params[:platform])
+  VALID_PARAMETERS['platforms'].include?(params[:platform])
 end

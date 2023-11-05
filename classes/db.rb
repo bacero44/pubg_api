@@ -3,7 +3,8 @@
 require 'mongo'
 
 MONGO = Mongo::Client.new(['127.0.0.1:27017'], database: 'pubg')
-COLLECTION = MONGO[:players]
+PLAYERS = MONGO[:players]
+MATCHES = MONGO[:matches]
 
 # Class for data base
 class Db
@@ -13,7 +14,7 @@ class Db
     end
 
     def player_exist?(platform, player_name)
-      COLLECTION.find({ "platform": platform, "player_name": player_name }).count.positive? ? true : false
+      PLAYERS.find({ "platform": platform, "player_name": player_name }).count.positive? ? true : false
     end
 
     def get_player(platform, player_name)
@@ -42,29 +43,37 @@ class Db
     end
 
     def keep_matches(payload, id)
-      save_matches(payload, id)
+      save_player_matches(payload, id)
     end
 
     def keep_update_player(payload, id)
       update_player(payload, id)
     end
 
-    def get_matches(id)
+    def get_player_matches(id)
       get_collection_by_id(id)['matches']
+    end
+
+    def get_match(platform, id)
+      match(platform, id)
+    end
+
+    def keep_match(platform, id, data)
+      save_match(platform, id, data)
     end
 
     private
 
     def get_collection(platform, player_name)
-      COLLECTION.find({ "platform": platform, "player_name": player_name }).first
+      PLAYERS.find({ "platform": platform, "player_name": player_name }).first
     end
 
     def get_collection_by_id(id)
-      COLLECTION.find({ "id": id }).first
+      PLAYERS.find({ "id": id }).first
     end
 
     def save_player(platform, player_name, id, clan_id, ban_type)
-      COLLECTION.insert_one(
+      PLAYERS.insert_one(
         {
           "id": id,
           "platform": platform,
@@ -76,7 +85,7 @@ class Db
     end
 
     def update_player(payload, id)
-      COLLECTION.update_one(
+      PLAYERS.update_one(
         { "id": id },
         {
           "$set":
@@ -85,19 +94,34 @@ class Db
           }
         }
       )
-      save_matches(payload[:matches], id)
+      save_player_matches(payload[:matches], id)
     end
 
     def save_timelife(payload, id)
-      COLLECTION.update_one({ "id": id }, { "$set": { 'lifetime' => payload, 'updated' => Time.now } })
+      PLAYERS.update_one({ "id": id }, { "$set": { 'lifetime' => payload, 'updated' => Time.now } })
     end
 
     def save_weapon_mastery(payload, id)
-      COLLECTION.update_one({ "id": id }, { "$set": { 'weapon_mastery' => payload } })
+      PLAYERS.update_one({ "id": id }, { "$set": { 'weapon_mastery' => payload } })
     end
 
-    def save_matches(payload, id)
-      COLLECTION.update_one({ "id": id }, { "$set": { 'matches' => payload } })
+    def save_player_matches(payload, id)
+      PLAYERS.update_one({ "id": id }, { "$set": { 'matches' => payload } })
+    end
+
+    def match(platform, id)
+      m = MATCHES.find({ "platform": platform, "id": id })
+      m.count.positive? ? m.first : false
+    end
+
+    def save_match(platform, id, data)
+      MATCHES.insert_one(
+        {
+          "id": id,
+          "platform": platform,
+          "data": data
+        }
+      )
     end
   end
 end

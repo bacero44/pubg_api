@@ -32,6 +32,11 @@ class Pubg
       get_weapon_summaries(response)
     end
 
+    def get_match(platform, id)
+      response = match_request("https://api.pubg.com/shards/#{platform}/matches/#{id}")
+      response ? get_match_summary(response) : false
+    end
+
     private
 
     def request(url)
@@ -44,12 +49,21 @@ class Pubg
       response.code == 200 ? response['data'] : false
     end
 
+    def match_request(url)
+      puts "------------------------------------------- peticion MATCH"
+      response = HTTParty.get(url, headers: {
+        'Content-Type' => 'application/json',
+        'accept' => 'application/vnd.api+json',
+      })
+      response.code == 200 ? response : false
+    end
+
     def player(payload)
       {
         id: get_id(payload),
         clan_id: get_clan_id(payload),
         ban_type: get_ban_type(payload),
-        matches: get_matches(payload)
+        matches: get_player_matches(payload)
       }
     end
 
@@ -65,7 +79,7 @@ class Pubg
       payload['attributes']['banType']
     end
 
-    def get_matches(payload)
+    def get_player_matches(payload)
       payload['relationships']['matches']['data'].map { |hash| hash['id'] }
     end
 
@@ -77,5 +91,53 @@ class Pubg
       payload['attributes']['weaponSummaries'].each { |item, data| data['name'] = ITEMS[item] }
     end
 
+    def get_match_summary(payload)
+      {
+        date: get_match_date(payload),
+        mode: get_match_mode(payload),
+        map: get_match_map(payload),
+        teams: get_match_teams(payload),
+        participants: get_match_participants(payload),
+      }
+    end
+
+    def get_match_date(payload)
+      payload['data']['attributes']['createdAt']
+    end
+
+    def get_match_mode(payload)
+      payload['data']['attributes']['gameMode']
+    end
+
+    def get_match_map(payload)
+      payload['data']['attributes']['mapName']
+    end
+
+    def get_match_participants(payload)
+      participants = payload['included'].select { |item| item['type'] == 'participant' }
+      participants = participants.map do |item|
+        {
+          'matchPlayerId' => item['id'],
+          'name' => item['attributes']['stats']['name'],
+          'playerId' => item['attributes']['stats']['playerId'],
+          'platform' => item['attributes']['shardId'],
+          'actor' => item['attributes']['actor'],
+          'stats' => item['attributes']['stats']
+        }
+      end
+      participants.each { |item| item['stats'].delete('playerId'); item['stats'].delete('name') }
+    end
+
+    def get_match_teams(payload)
+      teams = payload['included'].select { |item| item['type'] == 'roster' }
+      teams.map do |item|
+        {
+          'id' => item['id'],
+          'won' => item['attributes']['won'],
+          'rank' => item['attributes']['stats']['rank'],
+          'participants' => item['relationships']['participants']['data'].map { |pa| pa["id"] }
+        }
+      end
+    end
   end
 end

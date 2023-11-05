@@ -16,7 +16,7 @@ class Player
 
       @lifetime = Db.get_lifetime(@id)
       @weapon_mastery = Db.get_weapon_mastery(@id)
-      @matches = Db.get_matches(@id)
+      @matches = Db.get_player_matches(@id)
     end
   end
 

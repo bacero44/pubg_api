@@ -1,0 +1,8 @@
+platforms:
+  - kakao
+  - stadia
+  - steam
+  - tournament
+  - psn
+  - xbox
+  - console

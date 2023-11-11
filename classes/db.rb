@@ -62,6 +62,10 @@ class Db
       save_match(platform, id, data)
     end
 
+    def player(id)
+      get_collection_by_id(id)
+    end
+
     private
 
     def get_collection(platform, player_name)

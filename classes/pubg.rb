@@ -4,6 +4,7 @@ require 'httparty'
 
 CONFIG = YAML.load_file('secrets.ylm')
 ITEMS = YAML.load_file('items.ylm')
+MAPS = YAML.load_file('maps.ylm')
 
 # pubg class to get info from API
 class Pubg
@@ -40,22 +41,29 @@ class Pubg
     private
 
     def request(url)
-      puts "------------------------------------------- peticion"
-      response = HTTParty.get(url, headers: {
-        'Content-Type' => 'application/json',
-        'accept' => 'application/vnd.api+json',
-        'Authorization' => "Bearer #{CONFIG['pubg_api_key']}"
-      })
+      # puts '------------------------------------------- peticion'
+      response = HTTParty.get(url, headers:
+        {
+          'Content-Type' => 'application/json',
+          'accept' => 'application/vnd.api+json',
+          'Authorization' => "Bearer #{CONFIG['pubg_api_key']}"
+        })
       response.code == 200 ? response['data'] : false
     end
 
     def match_request(url)
-      puts "------------------------------------------- peticion MATCH"
-      response = HTTParty.get(url, headers: {
-        'Content-Type' => 'application/json',
-        'accept' => 'application/vnd.api+json',
-      })
+      # puts '------------------------------------------- peticion MATCH'
+      response = HTTParty.get(url, headers:
+        {
+          'Content-Type' => 'application/json',
+          'accept' => 'application/vnd.api+json'
+        })
       response.code == 200 ? response : false
+    end
+
+    def telemetry_request(url)
+      # puts '------------------------------------------- peticion TELEMETRY'
+      response = HTTParty.get(url)
     end
 
     def player(payload)
@@ -92,12 +100,15 @@ class Pubg
     end
 
     def get_match_summary(payload)
+      t = get_match_telemetry(payload)
       {
         date: get_match_date(payload),
         mode: get_match_mode(payload),
         map: get_match_map(payload),
         teams: get_match_teams(payload),
         participants: get_match_participants(payload),
+        telemetry: t,
+        deaths: get_match_deaths(t)
       }
     end
 
@@ -110,7 +121,7 @@ class Pubg
     end
 
     def get_match_map(payload)
-      payload['data']['attributes']['mapName']
+      MAPS[payload['data']['attributes']['mapName']]
     end
 
     def get_match_participants(payload)
@@ -136,6 +147,36 @@ class Pubg
           'won' => item['attributes']['won'],
           'rank' => item['attributes']['stats']['rank'],
           'participants' => item['relationships']['participants']['data'].map { |pa| pa["id"] }
+        }
+      end
+    end
+
+    def get_match_telemetry(payload)
+      telemetry = payload['included'].select { |item| item['type'] == 'asset' }
+      telemetry[0]['attributes']['URL']
+    end
+
+    def get_match_deaths(telemetry_url)
+      telemetry = telemetry_request(telemetry_url)
+      telemetry.select { |t| t['_T'] == 'LogPlayerKillV2' }.map do |t|
+        {
+          reason: t.dig('finishDamageInfo', 'damageReason'),
+          type: t.dig('finishDamageInfo', 'damageTypeCategory'),
+          causer: t.dig('finishDamageInfo', 'damageCauserName'),
+          victim: {
+            name: t.dig('victim', 'name'),
+            id: t.dig('victim', 'accountId'),
+            rank: t.dig('victimGameResult', 'rank'),
+            kills: t.dig('victimGameResult', 'stats', 'killCount'),
+            weapon: t.dig('victim', 'victimWeapon'),
+            weaponAttachments: t.dig('victim', 'victimWeaponAdditionalInfo')
+          },
+          killer: {
+            name: t.dig('finisher', 'name'),
+            id: t.dig('finisher', 'accountId'),
+            weapon: t.dig('killerDamageInfo', 'damageCauserName'),
+            weaponAttachments: t.dig('killerDamageInfo', 'additionalInfo')
+          }
         }
       end
     end

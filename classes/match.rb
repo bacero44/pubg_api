@@ -3,6 +3,7 @@
 # Class for matches
 class Match
   attr_reader :id, :platform, :data
+
   def initialize(platform, id)
     @id = id
     @platform = platform
@@ -11,7 +12,6 @@ class Match
 
     find_match
     if !@data.nil? && !@local_info
-      puts "entra a guardar en match"
       Db.keep_match(@platform, @id, @data)
     end
   end

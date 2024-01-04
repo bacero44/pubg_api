@@ -1,4 +1,4 @@
-gem 'httparty'
+gem 'httparty', '~> 0.20.0'
 gem 'json'
 gem 'mongo'
 gem 'rejson-rb'

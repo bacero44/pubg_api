@@ -1,4 +1,5 @@
-gem 'httparty', '~> 0.20.0'
+source "https://rubygems.org"
+gem 'httparty'
 gem 'json'
 gem 'mongo'
 gem 'rejson-rb'

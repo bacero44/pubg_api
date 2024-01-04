@@ -25,7 +25,7 @@ class Player
   def data
     {
       "data":
-        [{
+        {
           "player_name": @player_name,
           "platform": @platform,
           "clan_id": @clan_id,
@@ -33,7 +33,7 @@ class Player
           "lifetime": @lifetime,
           "weapon_mastery": @weapon_mastery,
           "matches": @matches
-        }]
+        }
     }
   end
 
@@ -65,6 +65,6 @@ class Player
   end
 
   def update_stats?(date)
-    date && date > Time.now - 1 * 60 ? false : true
+    date && date > Time.now - 2 * 60 ? false : true
   end
 end

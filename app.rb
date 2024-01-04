@@ -15,7 +15,7 @@ also_reload settings.root + '/classes/match.rb'
 
 before do
   content_type :json
-  # headers 'Access-Control-Allow-Origin' => '*'
+  headers 'Access-Control-Allow-Origin' => '*'
 end
 
 get '/' do
